@@ -187,6 +187,7 @@ type ResultInfoHistory map[tc.CacheName][]ResultInfo
 // ResultInfo contains all the non-stat result info. This includes the cache ID, any errors, the time of the poll, the request time duration, Astats System (Vitals), Poll ID, and Availability.
 type ResultInfo struct {
 	ID          tc.CacheName
+	Name        tc.CacheName
 	Error       error
 	Time        time.Time
 	RequestTime time.Duration
@@ -199,6 +200,7 @@ type ResultInfo struct {
 func ToInfo(r Result) ResultInfo {
 	return ResultInfo{
 		ID:          r.ID,
+		Name:        r.Name,
 		Error:       r.Error,
 		Time:        r.Time,
 		RequestTime: r.RequestTime,

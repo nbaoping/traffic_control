@@ -348,6 +348,7 @@ func CreateMonitorConfig(crConfig tc.CRConfig, mc *tc.TrafficMonitorConfigMap) (
 		} else {
 			log.Warnf("Creating monitor config: CRConfig server %s missing HashId field\n", name)
 		}
+		s.SecondaryIps = srv.SecondaryIps
 		mc.TrafficServer[name] = s
 	}
 

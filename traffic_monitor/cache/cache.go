@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/apache/incubator-trafficcontrol/lib/go-log"
@@ -71,6 +72,7 @@ type PrecomputedData struct {
 // Result is the data result returned by a cache.
 type Result struct {
 	ID              tc.CacheName
+	Name            tc.CacheName
 	Error           error
 	Astats          Astats
 	Time            time.Time
@@ -274,8 +276,11 @@ func StatsMarshall(statResultHistory ResultStatHistory, statInfo ResultInfoHisto
 // Handle handles results fetched from a cache, parsing the raw Reader data and passing it along to a chan for further processing.
 func (handler Handler) Handle(id string, r io.Reader, format string, reqTime time.Duration, reqEnd time.Time, reqErr error, pollID uint64, pollFinished chan<- uint64) {
 	log.Debugf("poll %v %v (format '%v') handle start\n", pollID, time.Now(), format)
+	segs := strings.Split(id, "/")
+	name := segs[0]
 	result := Result{
 		ID:           tc.CacheName(id),
+		Name:         tc.CacheName(name),
 		Time:         reqEnd,
 		RequestTime:  reqTime,
 		PollID:       pollID,

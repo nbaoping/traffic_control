@@ -96,7 +96,7 @@ func GetVitals(newResult *cache.Result, prevResult *cache.Result, mc *tc.Traffic
 // The availability of EvalCache MAY NOT be used to directly set the cache's local availability, because the threshold stats may not be part of the poller which produced the result. Rather, if the cache was previously unavailable from a threshold, it must be verified that threshold stat is in the results before setting the cache to available.
 // TODO change to return a `cache.AvailableStatus`
 func EvalCache(result cache.ResultInfo, resultStats cache.ResultStatValHistory, mc *tc.TrafficMonitorConfigMap) (bool, string, string) {
-	serverInfo, ok := mc.TrafficServer[string(result.ID)]
+	serverInfo, ok := mc.TrafficServer[string(result.Name)]
 	if !ok {
 		log.Errorf("Cache %v missing from from Traffic Ops Monitor Config - treating as OFFLINE\n", result.ID)
 		return false, "ERROR - server missing in Traffic Ops monitor config", ""

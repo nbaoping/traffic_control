@@ -27,8 +27,8 @@ import (
 
 	"github.com/apache/incubator-trafficcontrol/lib/go-log"
 	"github.com/apache/incubator-trafficcontrol/lib/go-tc"
-	"github.com/apache/incubator-trafficcontrol/traffic_monitor/config"
 	"github.com/apache/incubator-trafficcontrol/traffic_monitor/cache"
+	"github.com/apache/incubator-trafficcontrol/traffic_monitor/config"
 	"github.com/apache/incubator-trafficcontrol/traffic_monitor/peer"
 	"github.com/apache/incubator-trafficcontrol/traffic_monitor/poller"
 	"github.com/apache/incubator-trafficcontrol/traffic_monitor/threadsafe"
@@ -249,8 +249,8 @@ func monitorConfigListen(
 				localStates.AddCache(cacheName, tc.IsAvailable{IsAvailable: false})
 			}
 
-			url := monitorConfig.Profile[srv.Profile].Parameters.HealthPollingURL
-			if url == "" {
+			hurl := monitorConfig.Profile[srv.Profile].Parameters.HealthPollingURL
+			if hurl == "" {
 				log.Errorf("monitor config server %v profile %v has no polling URL; can't poll", srv.HostName, srv.Profile)
 				continue
 			}
@@ -261,13 +261,24 @@ func monitorConfigListen(
 				log.Infof("health.polling.format for '%v' is empty, using default '%v'", srv.HostName, format)
 			}
 
-			r := strings.NewReplacer(
-				"${hostname}", srv.IP,
-				"${interface_name}", srv.InterfaceName,
-				"application=plugin.remap", "application=system",
-				"application=", "application=system",
-			)
-			url = r.Replace(url)
+			hfunc := func(hurl string, ip string, iface string) string {
+				r := strings.NewReplacer(
+					"${hostname}", ip,
+					"${interface_name}", iface,
+					"application=plugin.remap", "application=system",
+					"application=", "application=system",
+				)
+				return r.Replace(hurl)
+			}
+
+			sfunc := func(hurl string, ip string, iface string) string {
+				r := strings.NewReplacer(
+					"${hostname}", ip,
+					"${interface_name}", iface,
+					"application=plugin.remap", "application=",
+				)
+				return r.Replace(hurl)
+			}
 
 			connTimeout := trafficOpsHealthConnectionTimeoutToDuration(monitorConfig.Profile[srv.Profile].Parameters.HealthConnectionTimeout)
 			if connTimeout == 0 {
@@ -275,10 +286,41 @@ func monitorConfigListen(
 				log.Warnln("profile " + srv.Profile + " health.connection.timeout Parameter is missing or zero, using default " + DefaultHealthConnectionTimeout.String())
 			}
 
-			healthURLs[srv.HostName] = poller.PollConfig{URL: url, Host: srv.FQDN, Timeout: connTimeout, Format: format}
-			r = strings.NewReplacer("application=system", "application=")
-			statURL := r.Replace(url)
-			statURLs[srv.HostName] = poller.PollConfig{URL: statURL, Host: srv.FQDN, Timeout: connTimeout, Format: format}
+			addr := tc.IfaceAddr{
+				InterfaceName: srv.InterfaceName,
+				IP:            srv.IP,
+				IP6:           srv.IP6,
+			}
+
+			ifaceAddrs := append(srv.SecondaryIps, addr)
+
+			ifaces := map[string]bool{
+				srv.InterfaceName: true,
+			}
+
+			log.Infof("Set the healthURLs")
+			// Set the health urls for the SecondaryIps
+			for idx := range ifaceAddrs {
+				addr := ifaceAddrs[idx]
+				u := hfunc(hurl, addr.IP, addr.InterfaceName)
+				id := fmt.Sprintf("%s/%s", srv.HostName, addr.IP)
+				pc := poller.PollConfig{URL: u, Host: addr.IP, Timeout: connTimeout, Format: format}
+				healthURLs[id] = pc
+				if len(addr.IP6) > 0 {
+					u := hfunc(hurl, addr.IP6, addr.InterfaceName)
+					id := fmt.Sprintf("%s/%s", srv.HostName, addr.IP6)
+					pc := poller.PollConfig{URL: u, Host: addr.IP6, Timeout: connTimeout, Format: format}
+					healthURLs[id] = pc
+				}
+				ifaces[addr.InterfaceName] = true
+			}
+
+			log.Infof("Set the statURLs")
+			for name, _ := range ifaces {
+				statURL := sfunc(hurl, srv.IP, name)
+				id := fmt.Sprintf("%s/%s", srv.HostName, name)
+				statURLs[id] = poller.PollConfig{URL: statURL, Host: srv.FQDN, Timeout: connTimeout, Format: format}
+			}
 		}
 
 		peerSet := map[tc.TrafficMonitorName]struct{}{}

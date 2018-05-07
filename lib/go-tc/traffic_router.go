@@ -128,6 +128,13 @@ type StaticDNS struct {
 	Type  string `json:"type"`
 }
 
+// IfaceAddr ...
+type IfaceAddr struct {
+	InterfaceName string `json:"interfaceName"`
+	IP            string `json:"ip"`
+	IP6           string `json:"ip6,omitempty"`
+}
+
 // TrafficServer ...
 type TrafficServer struct {
 	Profile          string              `json:"profile"`
@@ -142,6 +149,7 @@ type TrafficServer struct {
 	Type             string              `json:"type"`
 	HashID           string              `json:"hashId"`
 	DeliveryServices []tsdeliveryService `json:"deliveryServices,omitempty"` // the deliveryServices key does not exist on mids
+	SecondaryIps     []IfaceAddr         `json:"secondaryIps,omitempty"`
 }
 
 type tsdeliveryService struct {

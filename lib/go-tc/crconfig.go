@@ -93,6 +93,7 @@ type CRConfigTrafficOpsServer struct {
 	ServerStatus     *CRConfigServerStatus `json:"status,omitempty"`
 	ServerType       *string               `json:"type,omitempty"`
 	DeliveryServices map[string][]string   `json:"deliveryServices,omitempty"`
+	SecondaryIps     []IfaceAddr           `json:"secondaryIps,omitempty"`
 }
 
 //TODO: drichardson - reconcile this with the DeliveryService struct in deliveryservices.go
